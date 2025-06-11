@@ -1,0 +1,25 @@
+[project]
+name = "fipip"
+description = "Functionally Informed Fine-mapping"
+version = "0.0.1"
+authors = [{name = "Michael Sweeney", email = "mikeswny@umich.edu"}]
+license = {text = "Apache 2.0"}
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy", "pandas", "pysam"
+]
+
+[project.scripts]
+fipip = "fipip.cli:main"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+scripts = ["*.txt", "*.rst", "*.html"]
+
+[project.urls]
+"Homepage" = "https://statgen.github.io/fipip/"
+"Bug Tracker" = "https://github.com/statgen/fipip/issues"
