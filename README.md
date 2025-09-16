@@ -1,5 +1,5 @@
 # fiPIP (Functionally Informed PIPs)
-This repository aims to accomplish two tasks for users with statistical fine-mapping results: (1) help users generate or access deep-leaning based sequence-to-omics scores from AlphaGenome, Borzoi, Enformer and/or Sei, and (2) generate functionally-informed posterior inclusion probabilities (PIPs) from quantitative scores containing functional information. These two tasks can be completed independently of each other. Users can use any quantitative scores to generate fiPIPs using this code respository, including those not mentioned in this code repository. In fact, as sequence-to-omics models update and new ones are released, we encourage users to do so. This repository may not be updated if updates are released for the aforementioned sequence-to-omics models.
+This repository aims to accomplish two tasks for users with statistical fine-mapping results: (1) provide a starting point for users seeking to generate or access deep-leaning based sequence-to-omics scores from AlphaGenome, Borzoi, Enformer and/or Sei, and (2) generate functionally-informed posterior inclusion probabilities (PIPs) from quantitative scores containing functional information. These two tasks can be completed independently of each other. Users can use any quantitative scores to generate fiPIPs using this code respository, including those from tools not mentioned in this code repository. In fact, as sequence-to-omics models update and new ones are released, we encourage users to do so. This repository may not be updated if updates are released for the aforementioned sequence-to-omics models or as new ones are released.
 
 ## Installation
 
@@ -12,9 +12,19 @@ fipip test_command --help
 
 ## Task 1: Generate or access deep-leaning based sequence-to-omics scores
 
+Please refer to each method's installation instructions. To prevent conflicts across the different methods which have different requirements, we recommend making virtual or Conda environments for each method.
+
 ### [AlphaGenome](https://github.com/google-deepmind/alphagenome)
 
-Currently, an API has been released for AlphaGenome access. An API key is required. As this is a new method, we recommend following the most up-to-date tutorial; however, we do provide an example script for generating AlphaGenome scores in the tutorials folder, which is a condensed version of their tutorial [here](https://colab.research.google.com/github/google-deepmind/alphagenome/blob/main/colabs/quick_start.ipynb). Please make sure to insert your own API key into the script before use.
+Currently, an API has been released for AlphaGenome access. An API key is required. As this is a new method, we recommend following the most up-to-date tutorial; however, we do provide an example script for generating AlphaGenome RNA-seq scores in the tutorials folder, which is a condensed version of their tutorial [here](https://colab.research.google.com/github/google-deepmind/alphagenome/blob/main/colabs/quick_start.ipynb). Please make sure to set your API key before use.
+
+```bash
+# Example
+export ALPHAGENOME_API_KEY='YOUR_ALPHAGENOME_API_KEY'
+python3 tutorials/alphagenome_cli.py --input tutorials/example_data.tsv --output alphagenome_results.csv --sep "\t"
+```
+
+The output file will have predictions for 667 RNA-seq tracks per variant. The "fallback" column is 1 for a variant if the variant's associated Ensembl ID was not present in the AlphaGenome output, and consequently a mean was taken over all other variants, and 0 otherwise.
 
 ### [Borzoi](https://github.com/calico/borzoi)
 
@@ -36,9 +46,9 @@ We currently do not provide a script for generating your own Enformer scores; ho
 
 ### [Sei](https://github.com/FunctionLab/sei-framework)
 
-We recommend following the setup instructions and using the chromatin profile prediction and sequence class prediction scripts 1_variant_effect_prediction.sh and 2_varianteffect_sc_score.sh respectively to obtain epigenomic readout and sequence class Sei scores. Both epigenomic readout and sequence class scores are quantitative scores that can be used for fiPIP generation.
+We recommend following the setup instructions and using the chromatin profile prediction and sequence class prediction scripts `1_variant_effect_prediction.sh` and `2_varianteffect_sc_score.sh` respectively in the Sei repository to obtain epigenomic readout and sequence class Sei scores. Both epigenomic readout and sequence class scores are quantitative scores that can be used for fiPIP generation.
 
-# Task 2: Generate functionally informed PIPs (fiPIPs)
+## Task 2: Generate functionally informed PIPs (fiPIPs)
 
 We provide a command line tool for generating fiPIPs from quantitative scores. Please refer to task 1 for direction on how these can be obtained if necessary.  
 
