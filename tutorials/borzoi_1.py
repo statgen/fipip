@@ -136,8 +136,6 @@ def main():
         except Exception as e:
             problematic.append(("PARSE", str(token), str(e)))
             continue
-        
-        transcriptome = bgene.Transcriptome('gencode41_basic_nort.gtf')
 
         poses = [center_pos]
         alts = [alt_base]
