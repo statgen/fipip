@@ -20,6 +20,7 @@ Currently, an API has been released for AlphaGenome access. An API key is requir
 
 ```bash
 # Example
+pip install alphagenome
 export ALPHAGENOME_API_KEY='YOUR_ALPHAGENOME_API_KEY'
 python3 tutorials/alphagenome_cli.py --input tutorials/example_data.tsv --output alphagenome_results.csv --sep "\t"
 ```
@@ -30,7 +31,12 @@ The output file will have predictions for 667 RNA-seq tracks per variant. The "f
 
 Please follow the installation instructions in the Borzoi repository to download the Borzoi models for use.
 
-Two scripts in the tutorials folder can be used for generating Borzoi scores for the variants in your credible set. The first example script we provide predicts for all 89 RNA-seq tracks. This first script produces a [pickle](https://docs.python.org/3/library/pickle.html) object per variant corresponding to RNA-seq predictions at 32 base pair resolution for all 89 tissues across 4 folds.
+Two scripts in the tutorials folder can be used for generating Borzoi scores for the variants in your credible set. The first example script we provide predicts for all 89 RNA-seq tracks. This first script produces two [pickle](https://docs.python.org/3/library/pickle.html) objects per variant, one for each allele, corresponding to RNA-seq predictions at 32 base pair resolution for all 89 tissues across 4 folds.
+
+```bash
+# Example
+python3 tutorials/borzoi_1.py --input tutorials/example_variants.tsv --outdir borzoi_objects
+```
 
 The second script takes the output folder of pickle objects and converts each pickle object to a singular Borzoi score for each variant for each track. If you would like to make predictions for only a subset of tracks, perhaps one(s) more relevant to the tissue of your eQTLs, the 89 columns of the pickle object correspond to the GTEx tissue replicates listed [here](https://github.com/calico/borzoi/blob/5c9358222b5026abb733ed5fb84f3f6c77239b37/examples/targets_gtex.txt). Please set the track_indices parameter to make predictions for only a subset of tissues.
 
