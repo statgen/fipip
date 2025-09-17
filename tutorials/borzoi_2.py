@@ -25,7 +25,7 @@ import pandas as pd
 # -----------------------------
 # Hard-coded constants (edit if needed)
 # -----------------------------
-GTF_PATH = "" # Hard code in \path\to\GTF.gtf here or include with --gtf-path
+GTF_PATH = None # Hard code in \path\to\GTF.gtf here or include with --gtf-path
 
 # Default model/geometry parameters, please feel free to change if desired
 SEQ_LEN = 524288
@@ -140,7 +140,7 @@ def _apply_rescale(a: np.ndarray,
     return x
 
 
-def _build_exon_mask(gtf_df: pd.DataFrame,
+def _build_exon_mask(gtf_df: Optional[pd.DataFrame],
                      chrom: str,
                      center_pos: int,
                      seq_len: int,
@@ -151,6 +151,10 @@ def _build_exon_mask(gtf_df: pd.DataFrame,
     If no exons overlap (or gene not provided / not matched), fall back to the R default:
       c(rep(0,7209), rep(1,1966), rep(0,7209))
     """
+    
+    if gtf_df is None:
+        return _default_mask_trimmed()
+      
     start = center_pos - seq_len // 2
     end = center_pos + seq_len // 2  # exclusive end
 
@@ -168,9 +172,7 @@ def _build_exon_mask(gtf_df: pd.DataFrame,
 
     # If nothing matched, use default
     if gtf.shape[0] == 0:
-        base = np.zeros(16384, dtype=np.float64)
-        base[7209:7209 + 1966] = 1.0
-        return base[16:16368]
+        return _default_mask_trimmed()
 
     # Collect all exon base positions (can be large; we’ll convert to bins efficiently)
     # We can rasterize by bins instead of expanding every base.
@@ -344,7 +346,11 @@ def find_pairs(indir: str) -> List[Tuple[str, str]]:
         if os.path.exists(mut):
             pairs.append((wt, mut))
     return pairs
-
+  
+def _default_mask_trimmed() -> np.ndarray:
+    base = np.zeros(16384, dtype=np.float64)
+    base[7209:7209 + 1966] = 1.0
+    return base[16:16368]
 
 def main():
     parser = argparse.ArgumentParser(
@@ -359,12 +365,16 @@ def main():
         help="Track indices (1-89) to keep. Examples: '1-89' (default), '1,5,7-10,80-89'."
     )
     parser.add_argument(
-        "-o", "--output-csv", required=True,
+        "-o", "--output", required=True,
         help="Path to write CSV. Rows = variants, columns = selected tracks."
     )
     parser.add_argument(
-        "--gtf-path", default=GTF_PATH,
-        help="Path to GTF. This argument is ignored if you would like to hard code it above."
+      "--gtf-path", default=GTF_PATH,
+      help="Path to gencode41_basic_nort.gtf. If omitted or --no-gtf is set, uses default center window mask."
+    )
+    parser.add_argument(
+      "--no-gtf", action="store_true",
+      help="Ignore any GTF and always use the default center window mask."
     )
     parser.add_argument(
         "--gene", default=None,
@@ -402,11 +412,12 @@ def main():
     # Parse track spec
     track_ix = parse_track_indices(args.tracks, n_tracks=89)
 
-    # Load GTF (once)
-    if not os.path.exists(args.gtf_path):
-        sys.exit(f"GTF not found at {args.gtf_path}. Update GTF_PATH in the script or pass --gtf-path.")
-
-    gtf_df = _read_gtf(args.gtf_path)
+    gtf_df = None
+    if not args.no_gtf:
+        if args.gtf_path and os.path.exists(args.gtf_path):
+            gtf_df = _read_gtf(args.gtf_path)
+        else:
+            print(f"[INFO] No GTF found at {args.gtf_path}; falling back to default center window mask.", file=sys.stderr)
 
     # Discover pairs
     pairs = find_pairs(args.input_dir)
@@ -470,13 +481,13 @@ def main():
         sys.exit("No rows produced; nothing to write.")
 
     # Write CSV
-    os.makedirs(os.path.dirname(os.path.abspath(args.output_csv)) or ".", exist_ok=True)
-    with open(args.output_csv, "w", newline="") as f:
+    os.makedirs(os.path.dirname(os.path.abspath(args.output)) or ".", exist_ok=True)
+    with open(args.output, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["row_id"] + colnames)
         writer.writerows(rows)
 
-    print(f"Wrote {len(rows)} rows to {args.output_csv}")
+    print(f"Wrote {len(rows)} rows to {args.output}")
 
 
 if __name__ == "__main__":
