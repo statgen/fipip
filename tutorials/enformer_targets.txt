@@ -1,0 +1,3 @@
+CHIP:H3K27me3:regulatory T cell originated from blood cell
+CHIP:H3K9me3:T-helper 17 cell originated from blood cell
+CAGE:blood, adult, pool1
