@@ -55,6 +55,11 @@ Pre-computed Enformer scores are available [here](https://console.cloud.google.c
 
 We currently do not provide a script for generating your own Enformer scores; however, instructions for doing so and example Google Colab notebooks are available in the [Enformer github repository](https://github.com/google-deepmind/deepmind-research/tree/master/enformer).
 
+```bash
+# Example
+python3 tutorials/enformer.py --output enformer_master.csv --h5-dir /path/to/downloaded/h5/files --variants-file tutorials/example_variants.tsv --targets-file tutorials/enformer_targets.txt
+```
+
 ### [Sei](https://github.com/FunctionLab/sei-framework)
 
 We recommend following the setup instructions and using the chromatin profile prediction and sequence class prediction scripts `1_variant_effect_prediction.sh` and `2_varianteffect_sc_score.sh` respectively in the Sei repository to obtain epigenomic readout and sequence class Sei scores. Both epigenomic readout and sequence class scores are quantitative scores that can be used for fiPIP generation.
