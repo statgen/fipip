@@ -5,7 +5,7 @@
 # reproduces the exon-masked delta computation, and writes a CSV.
 #
 # Inputs: directory of .wt.obj / .mut.obj pickles produced by borzoi_1.py
-# Outputs: CSV with one row per variant, columns for selected tracks.
+# Outputs: CSV with one row per variant (and gene if provided), columns for selected tracks.
 #
 # Parity details with R (see README in the source message):
 # - Assumes pickle shapes are (1, 4, 16352, 89).
@@ -16,7 +16,7 @@ import glob
 import os
 import pickle
 import sys
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import Iterable, List, Optional, Sequence, Tuple, Dict
 
 import numpy as np
 import pandas as pd
@@ -25,7 +25,7 @@ import pandas as pd
 # -----------------------------
 # Hard-coded constants (edit if needed)
 # -----------------------------
-GTF_PATH = None # Hard code in \path\to\GTF.gtf here or include with --gtf-path
+GTF_PATH = None  # Hard code in \path\to\GTF.gtf here or include with --gtf-path
 
 # Default model/geometry parameters, please feel free to change if desired
 SEQ_LEN = 524288
@@ -89,18 +89,13 @@ def _collapse_mean(arr: np.ndarray) -> np.ndarray:
     if a.ndim == 4:
         d1, d2, d3, d4 = a.shape
         if d1 != 1:
-            # If d1 is not 1 but 4, we can also average over that leading axis
-            # to emulate "use index 0" from R. Average over both leading dims.
             a0 = a.mean(axis=0)  # reduce d1
             return a0.mean(axis=0)  # reduce d2 -> (d3, d4)
         else:
-            # use the only slice in dim0, mean over dim1 (folds)
             return a[0].mean(axis=0)
     elif a.ndim == 3 and a.shape[0] == 4:
-        # (4, 16352, 89) -> mean over axis 0
         return a.mean(axis=0)
     elif a.ndim == 2:
-        # Already (16352, 89)
         return a
     else:
         raise ValueError(f"Unexpected prediction array shape: {a.shape}")
@@ -127,15 +122,12 @@ def _apply_rescale(a: np.ndarray,
 
         if clip_soft is not None:
             mask = x > clip_soft
-            # ((a - clip_soft)^2) + clip_soft for masked entries only
             x_masked = x[mask] - clip_soft
             x_masked = x_masked * x_masked + clip_soft
             x[mask] = x_masked
 
-        # inverse of sqrt-like transform
         x = np.power(x, 1.0 / float(track_transform))
 
-    # log1p always applied in the R code after (re)scaling
     x = np.log1p(x)
     return x
 
@@ -151,48 +143,34 @@ def _build_exon_mask(gtf_df: Optional[pd.DataFrame],
     If no exons overlap (or gene not provided / not matched), fall back to the R default:
       c(rep(0,7209), rep(1,1966), rep(0,7209))
     """
-    
     if gtf_df is None:
         return _default_mask_trimmed()
-      
+
     start = center_pos - seq_len // 2
     end = center_pos + seq_len // 2  # exclusive end
 
-    # Filter GTF to exon rows, chromosome, and any overlap with [start, end)
     gtf = gtf_df
-    # Expect columns: chr, annotation, seq, start1, end1, dot1, strand, dot2, gene
     gtf = gtf[(gtf["seq"] == "exon") &
               (gtf["chr"] == chrom) &
               (gtf["end1"] >= max(0, start)) &
               (gtf["start1"] <= end)]
 
     if gene_name is not None and len(gene_name) > 0:
-        # R extracts gene symbols from the attribute column and matches exactly
         gtf = gtf[gtf["gene"] == gene_name]
 
-    # If nothing matched, use default
     if gtf.shape[0] == 0:
         return _default_mask_trimmed()
 
-    # Collect all exon base positions (can be large; we’ll convert to bins efficiently)
-    # We can rasterize by bins instead of expanding every base.
-    # Convert exon intervals to 0-based bin indices within the window.
     bin_idxs = []
-
-    # Precompute bin starts in genomic coordinates relative to window start
-    # We'll mark a bin as 1 if any base of that bin intersects an exon.
     for _, row in gtf.iterrows():
         s = int(row["start1"])
-        e = int(row["end1"])  # inclusive in GTF; treat as inclusive for parity
-        # Intersect with window [start, end)
+        e = int(row["end1"])  # inclusive in GTF
         s_clip = max(s, start)
         e_clip = min(e, end - 1)
         if s_clip > e_clip:
             continue
-        # Convert to positions relative to window start
         rel_s = s_clip - start
         rel_e = e_clip - start
-        # Bin by floor(pos / 32)
         b0 = rel_s // BIN_SIZE
         b1 = rel_e // BIN_SIZE
         if b0 < 0:
@@ -206,33 +184,22 @@ def _build_exon_mask(gtf_df: Optional[pd.DataFrame],
     for b0, b1 in bin_idxs:
         base[b0:b1 + 1] = 1.0
 
-    # R does additional frequency -> /32 -> thresholding; the effect is a "bin touched?"
-    # The simpler union operation above matches that practical outcome for mask ∈ {0,1}.
-
-    # Trim 16 bins each side to match (16352, 89) matrices
     return base[16:16368]
 
 
 def _read_gtf(gtf_path: str) -> pd.DataFrame:
     """
-    Read and lightly normalize the GTF into the column schema used in the R code:
+    Read and lightly normalize the GTF into:
       chr, annotation, seq, start1, end1, dot1, strand, dot2, gene
-    The 'gene' column is parsed to a symbol before the dot (to mirror the R regexes).
     """
-    # GTF has 9 columns; we keep them and parse attributes to gene_id/gene_name-ish behavior
     colnames = ["chr", "annotation", "seq", "start1", "end1", "dot1", "strand", "dot2", "gene"]
     df = pd.read_csv(gtf_path, sep="\t", header=None, comment="#", names=colnames, dtype=str)
 
-    # Coerce numeric
     df["start1"] = df["start1"].astype(int)
     df["end1"] = df["end1"].astype(int)
 
-    # The R code strips attributes down to a gene symbol before the first '.'
-    # Assuming the attribute field has something like: gene_id "XYZ.1"; gene_name "XYZ"; ...
-    # We'll first try to extract gene_name "..."; if missing, fall back to first quoted token.
     def parse_gene(attr: str) -> str:
         s = str(attr)
-        # try gene_name "..."
         if 'gene_name "' in s:
             try:
                 left = s.split('gene_name "', 1)[1]
@@ -240,7 +207,6 @@ def _read_gtf(gtf_path: str) -> pd.DataFrame:
                 return token.split(".")[0]
             except Exception:
                 pass
-        # fallback: first quoted token
         if '"' in s:
             try:
                 token = s.split('"', 2)[1]
@@ -259,13 +225,11 @@ def _extract_tokens_from_basename(basename: str) -> Tuple[str, int, Optional[str
     Returns (chrom, center_pos:int, ref:str|None, alt:str|None).
     """
     stem = os.path.splitext(basename)[0]
-    # Remove trailing _wt or _mut
     if stem.endswith("_wt"):
         stem = stem[:-3]
     elif stem.endswith("_mut"):
         stem = stem[:-4]
     parts = stem.split("_")
-    # Accept both 2-part (chr_pos) and 4-part (chr_pos_ref_alt)
     if len(parts) < 2:
         raise ValueError(f"Unexpected basename format: {basename}")
     chrom = parts[0]
@@ -281,7 +245,7 @@ def _extract_tokens_from_basename(basename: str) -> Tuple[str, int, Optional[str
 def compute_delta_for_pair(wt_path: str,
                            mut_path: str,
                            track_indices_0based: Sequence[int],
-                           gtf_df: pd.DataFrame,
+                           gtf_df: Optional[pd.DataFrame],
                            default_gene: Optional[str],
                            rescale_tracks: bool,
                            scale_parameter: float,
@@ -300,36 +264,29 @@ def compute_delta_for_pair(wt_path: str,
     base = os.path.basename(wt_path)
     chrom, center_pos, _, _ = _extract_tokens_from_basename(base)
 
-    # Load arrays and rescale
     wt_raw = load_pickle(wt_path)
     mut_raw = load_pickle(mut_path)
 
     wt_scaled = _apply_rescale(wt_raw, rescale_tracks, scale_parameter, clip_soft, track_transform)
     mut_scaled = _apply_rescale(mut_raw, rescale_tracks, scale_parameter, clip_soft, track_transform)
 
-    # Collapse to (16352, 89)
     wt_mat = _collapse_mean(wt_scaled)
     mut_mat = _collapse_mean(mut_scaled)
 
     if wt_mat.shape[0] != 16352 or wt_mat.shape[1] != 89:
         raise ValueError(f"{base}: unexpected collapsed shape {wt_mat.shape}, expected (16352, 89)")
 
-    # Build exon mask
     mask = _build_exon_mask(gtf_df, chrom, center_pos, SEQ_LEN, default_gene)
 
-    # Apply mask across rows
     wt_masked = wt_mat * mask[:, None]
     mut_masked = mut_mat * mask[:, None]
 
-    # Column sums
     wt_sums = wt_masked.sum(axis=0)
     mut_sums = mut_masked.sum(axis=0)
 
     delta = mut_sums - wt_sums  # (89,)
-    # Subset tracks
     delta_sub = delta[np.array(track_indices_0based, dtype=int)]
 
-    # Row ID: drop suffixes; keep chr_pos or chr_pos_ref_alt if available
     row_id = os.path.splitext(os.path.basename(base))[0].replace("_wt", "")
     return row_id, delta_sub
 
@@ -346,11 +303,48 @@ def find_pairs(indir: str) -> List[Tuple[str, str]]:
         if os.path.exists(mut):
             pairs.append((wt, mut))
     return pairs
-  
+
+
 def _default_mask_trimmed() -> np.ndarray:
     base = np.zeros(16384, dtype=np.float64)
     base[7209:7209 + 1966] = 1.0
     return base[16:16368]
+
+
+def _read_gene_map_autodetect(path: str) -> pd.DataFrame:
+    """
+    Read a two-column mapping file into columns ['row_id','gene'] while
+    preserving row order and allowing either comma-separated or whitespace-separated formats.
+    - If the first non-empty, non-comment line contains a comma, use sep=",".
+    - Otherwise, use sep=r"\\s+" (tabs/spaces).
+    Only the first two columns are read; extra columns are ignored.
+    """
+    sep = r"\s+"
+    # Peek first meaningful line to decide
+    try:
+        with open(path, "r") as f:
+            for line in f:
+                s = line.strip()
+                if not s or s.startswith("#"):
+                    continue
+                if "," in s:
+                    sep = ","
+                break
+    except Exception as e:
+        raise RuntimeError(f"Failed to inspect gene-map file '{path}': {e}")
+
+    try:
+        df = pd.read_csv(path, sep=sep, header=None, usecols=[0, 1], names=["row_id", "gene"])
+    except Exception as e:
+        raise RuntimeError(f"Failed to read gene-map '{path}' with sep='{sep}': {e}")
+
+    # Normalize whitespace and types
+    df["row_id"] = df["row_id"].astype(str).str.strip()
+    df["gene"] = df["gene"].astype(str).str.strip()
+    # Drop completely empty row_id entries
+    df = df[df["row_id"].str.len() > 0].reset_index(drop=True)
+    return df
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -366,28 +360,30 @@ def main():
     )
     parser.add_argument(
         "-o", "--output", required=True,
-        help="Path to write CSV. Rows = variants, columns = selected tracks."
+        help="Path to write CSV. Rows = variants (and genes), columns = selected tracks."
     )
     parser.add_argument(
-      "--gtf-path", default=GTF_PATH,
-      help="Path to gencode41_basic_nort.gtf. If omitted or --no-gtf is set, uses default center window mask."
+        "--gtf-path", default=GTF_PATH,
+        help="Path to gencode41_basic_nort.gtf. If omitted or --no-gtf is set, uses default center window mask."
     )
     parser.add_argument(
-      "--no-gtf", action="store_true",
-      help="Ignore any GTF and always use the default center window mask."
+        "--no-gtf", action="store_true",
+        help="Ignore any GTF and always use the default center window mask."
     )
     parser.add_argument(
         "--gene", default=None,
         help="Optional constant gene symbol to use for all variants (e.g., 'BRCA1'). "
-             "If omitted, mask falls back to the default center window as no exons will match."
+             "If omitted and no gene-map is provided, mask falls back to the default center window."
     )
     parser.add_argument(
         "--gene-map", default=None,
-        help="Optional CSV mapping each file 'row_id' (chr_pos[_ref_alt]) to a 'gene' column. "
-             "Header must include: row_id,gene. Overrides --gene if provided."
+        help="Optional two-column mapping file: row_id,gene. "
+             "Auto-detects comma-separated or whitespace-separated formats. "
+             "May contain multiple rows for the same row_id (duplicates allowed). "
+             "Output preserves map order for these rows."
     )
     parser.add_argument(
-        "--no-rescale", default = RESCALE_TRACKS, action="store_true",
+        "--no-rescale", default=RESCALE_TRACKS, action="store_true",
         help="Disable the track rescaling/soft-clip/inverse-transform step (still applies log1p)."
     )
     parser.add_argument(
@@ -412,6 +408,7 @@ def main():
     # Parse track spec
     track_ix = parse_track_indices(args.tracks, n_tracks=89)
 
+    # Load GTF if used
     gtf_df = None
     if not args.no_gtf:
         if args.gtf_path and os.path.exists(args.gtf_path):
@@ -419,72 +416,78 @@ def main():
         else:
             print(f"[INFO] No GTF found at {args.gtf_path}; falling back to default center window mask.", file=sys.stderr)
 
-    # Discover pairs
+    # Discover available file pairs
     pairs = find_pairs(args.input_dir)
     if not pairs:
         sys.exit(f"No *_wt.obj with matching *_mut.obj found in {args.input_dir}")
 
-    # Optional gene map CSV
-    gene_map = {}
-    if args.gene_map:
-        gm = pd.read_csv(args.gene_map, header=None, names=["row_id", "gene"])
-        if "row_id" not in gm.columns or "gene" not in gm.columns:
-            sys.exit("gene-map CSV must have columns: row_id,gene")
-        # normalize keys exactly as our row_id (chr_pos[_ref_alt])
-        for _, r in gm.iterrows():
-            rid = str(r["row_id"])
-            gsym = str(r["gene"])
-            if gsym and gsym.lower() != "nan":
-                gene_map[rid] = gsym
+    # Map row_id -> (wt_path, mut_path)
+    id_to_pair: Dict[str, Tuple[str, str]] = {}
+    for wt_path, mut_path in pairs:
+        rid = os.path.splitext(os.path.basename(wt_path))[0].replace("_wt", "")
+        id_to_pair[rid] = (wt_path, mut_path)
 
     rows = []
     colnames = [f"track_{i+1}" for i in track_ix]
 
-    # Process each pair
-    for wt_path, mut_path in pairs:
+    # If gene-map provided, process exactly in the mapping order (duplicates allowed)
+    processed_ids_from_map = set()
+    if args.gene_map:
+        gm_df = _read_gene_map_autodetect(args.gene_map)
+        for _, r in gm_df.iterrows():
+            rid = r["row_id"]
+            gene_sym = None if pd.isna(r["gene"]) or r["gene"] == "" else str(r["gene"])
+            if rid not in id_to_pair:
+                print(f"[WARN] gene-map row_id '{rid}' not found among input files; skipping.", file=sys.stderr)
+                continue
+            wt_path, mut_path = id_to_pair[rid]
+            try:
+                # Compute directly with the provided gene (can be None/empty)
+                _, vec = compute_delta_for_pair(
+                    wt_path=wt_path,
+                    mut_path=mut_path,
+                    track_indices_0based=track_ix,
+                    gtf_df=gtf_df,
+                    default_gene=gene_sym,
+                    rescale_tracks=rescale_tracks,
+                    scale_parameter=float(args.scale_parameter),
+                    clip_soft=clip_soft,
+                    track_transform=float(args.track_transform),
+                )
+                rows.append((rid, gene_sym if gene_sym is not None else "", *vec.tolist()))
+            except Exception as e:
+                print(f"[WARN] Skipping {wt_path} / {mut_path} for gene '{gene_sym}': {e}", file=sys.stderr)
+            processed_ids_from_map.add(rid)
+
+    # For any remaining pairs not mentioned in the gene-map, process once each
+    for rid, (wt_path, mut_path) in id_to_pair.items():
+        if args.gene_map and rid in processed_ids_from_map:
+            continue
         try:
-            row_id, vec = compute_delta_for_pair(
+            gene_for_this = args.gene  # constant gene if provided
+            _, vec = compute_delta_for_pair(
                 wt_path=wt_path,
                 mut_path=mut_path,
                 track_indices_0based=track_ix,
                 gtf_df=gtf_df,
-                default_gene=None,  # decide per-record below
+                default_gene=gene_for_this,
                 rescale_tracks=rescale_tracks,
                 scale_parameter=float(args.scale_parameter),
                 clip_soft=clip_soft,
                 track_transform=float(args.track_transform),
             )
-
-            # Determine gene to use for the mask (priority: gene-map > --gene > None)
-            # Recompute mask+delta if we have a specific gene to apply.
-            # We did one pass above with default_gene=None to get row_id; if a gene is specified,
-            # recompute using that gene for exact parity with the R script's per-gene behavior.
-            gene_for_this = gene_map.get(row_id, args.gene)
-            if gene_for_this:
-                # Re-do the computation with the explicit gene
-                chrom, center_pos, _, _ = _extract_tokens_from_basename(os.path.basename(wt_path))
-                wt_raw = load_pickle(wt_path)
-                mut_raw = load_pickle(mut_path)
-                wt_scaled = _apply_rescale(wt_raw, rescale_tracks, float(args.scale_parameter), clip_soft, float(args.track_transform))
-                mut_scaled = _apply_rescale(mut_raw, rescale_tracks, float(args.scale_parameter), clip_soft, float(args.track_transform))
-                wt_mat = _collapse_mean(wt_scaled)
-                mut_mat = _collapse_mean(mut_scaled)
-                mask = _build_exon_mask(gtf_df, chrom, center_pos, SEQ_LEN, gene_for_this)
-                delta_full = (mut_mat * mask[:, None]).sum(axis=0) - (wt_mat * mask[:, None]).sum(axis=0)
-                vec = delta_full[np.array(track_ix, dtype=int)]
-
-            rows.append((row_id, *vec.tolist()))
+            rows.append((rid, gene_for_this if gene_for_this is not None else "", *vec.tolist()))
         except Exception as e:
             print(f"[WARN] Skipping {wt_path} / {mut_path}: {e}", file=sys.stderr)
 
     if not rows:
         sys.exit("No rows produced; nothing to write.")
 
-    # Write CSV
+    # Write CSV (always include 'gene' column to disambiguate duplicates)
     os.makedirs(os.path.dirname(os.path.abspath(args.output)) or ".", exist_ok=True)
     with open(args.output, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["row_id"] + colnames)
+        writer.writerow(["row_id", "gene"] + colnames)
         writer.writerows(rows)
 
     print(f"Wrote {len(rows)} rows to {args.output}")
