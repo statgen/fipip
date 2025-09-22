@@ -12,7 +12,7 @@ fipip test_command --help
 
 ## Task 1: Generate or access deep-leaning based sequence-to-omics scores
 
-Please refer to each method's installation instructions. To prevent conflicts across the different methods which have different requirements, we recommend making virtual or Conda environments for each method.
+**Please refer to each method's individual installation instructions before use. To prevent conflicts across the different methods which have different requirements, we recommend making virtual or Conda environments for each method.**
 
 ### [AlphaGenome](https://github.com/google-deepmind/alphagenome)
 
