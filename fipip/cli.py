@@ -1,6 +1,14 @@
 import os, sys, logging, importlib
 import logging
 
+cmd_raw = sys.argv[1]
+cmd = cmd_raw.replace("-", "_")          # normalize hyphens -> underscores
+if cmd not in module_map:
+    print(f"Unknown command: {cmd_raw}")
+    ...
+function_name = cmd
+module_name = "fipip.scripts." + module_map[function_name]
+
 def main():
     module_list = []
     scripts_dir = os.path.join(os.path.dirname(__file__), 'scripts')

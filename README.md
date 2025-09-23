@@ -4,10 +4,8 @@ This repository aims to accomplish two tasks for users with statistical fine-map
 ## Installation
 
 ```bash
-cd /path/to/fipip/repository
-python3 setpu.py install
+python -m pip install -U pip setuptools wheel
 pip install -e .
-fipip test_command --help
 ```
 
 ## Task 1: Generate or access deep-leaning based sequence-to-omics scores
