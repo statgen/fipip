@@ -82,12 +82,20 @@ Required columns (include column names, use following column names for first fou
 * pip — Posterior inclusion probability (PIP) from statistical fine-mapping
 * Continous scores (Please make sure they match the columns in the training file)
 
-The following command will generate PIP-agnostic probability-scale predictions, fiPIPs, and JSON files for each XGBoost model for each chromosome to the output directory `outdir`:
+The following command will generate PIP-agnostic probability-scale predictions, fiPIPs, and JSON files after training a XGBoost model for each chromosome to the output directory set by `--outdir`:
 ```bash
-python calculate_fipip \
+python3 calculate_fipip \
   --train-file tutorials/train_df.tsv \
   --predict-file tutorials/test_df.tsv \
   --outdir output \
-  --groups 1-5   # optional; 1-based indices; allows subset of continuous scores to be used
+  --groups 1-5   # optional parameter; 1-based indices; allows subset of continuous scores to be used
+```
+
+The following command will generate PIP-agnostic probability-scale predictions and fiPIPs from previously generated XGBoost model (JSON files) to the output directory set by `--outdir`:
+```bash
+python3 predict_from_json.py \
+  --predict-file tutorials/test_df2.tsv \
+  --models-dir output \
+  --outdir new_output \
 ```
 
