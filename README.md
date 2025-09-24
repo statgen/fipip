@@ -20,7 +20,7 @@ Currently, an API has been released for AlphaGenome access. An API key is requir
 # Example
 pip install alphagenome
 export ALPHAGENOME_API_KEY='YOUR_ALPHAGENOME_API_KEY'
-python3 tutorials/alphagenome_cli.py --input tutorials/example_data.tsv --output alphagenome_results.csv --sep "\t"
+python3 alphagenome --input tutorials/example_data.tsv --output alphagenome_results.csv --sep "\t"
 ```
 
 The output file will have predictions for 667 RNA-seq tracks per variant. The "fallback" column is 1 for a variant if the variant's associated Ensembl ID was not present in the AlphaGenome output, and consequently a mean was taken over all other variants, and 0 otherwise.
@@ -33,14 +33,14 @@ Two scripts in the tutorials folder can be used for generating Borzoi scores for
 
 ```bash
 # Example
-python3 tutorials/borzoi_1.py --input tutorials/example_variants.tsv --outdir borzoi_objects
+python3 borzoi_1 --input tutorials/example_variants.tsv --outdir borzoi_objects
 ```
 
 The second script takes the output folder of pickle objects and converts each pickle object to a singular Borzoi score for each variant for each track. If you would like to make predictions for only a subset of tracks, perhaps one(s) more relevant to the tissue of your eQTLs, the 89 columns of the pickle object correspond to the GTEx tissue replicates listed [here](https://github.com/calico/borzoi/blob/5c9358222b5026abb733ed5fb84f3f6c77239b37/examples/targets_gtex.txt). Please set the `--tracks` parameter to make predictions for only a subset of tissues. To make gene-contextual predictions for variants, please provide a GTF file and a file detailing the gene associated with each variant. Otherwise, gene-agnostic predictions will be made. This can be done by setting `--no-gtf`.
 
 ```bash
 # Example
-python3 tutorials/borzoi_2.py --input borzoi_objects --output borzoi_scores.csv --tracks 1-89 --gtf-path /path/to/your/gtf.gtf --gene-map tutorials/example_data.tsv
+python3 borzoi_2 --input borzoi_objects --output borzoi_scores.csv --tracks 1-89 --gtf-path /path/to/your/gtf.gtf --gene-map tutorials/example_data.tsv
 ```
 
 #### [Pre-computed Borzoi scores](https://console.cloud.google.com/storage/browser/seqnn-share/sniff;tab=objects?prefix=&forceOnObjectsSortingFiltering=false)
@@ -55,7 +55,7 @@ We currently do not provide a script for generating your own Enformer scores; ho
 
 ```bash
 # Example
-python3 tutorials/enformer.py --output enformer_master.csv --h5-dir /path/to/downloaded/h5/files --variants-file tutorials/example_variants.tsv --targets-file tutorials/enformer_targets.txt
+python3 enformer --output enformer_master.csv --h5-dir /path/to/downloaded/h5/files --variants-file tutorials/example_variants.tsv --targets-file tutorials/enformer_targets.txt
 ```
 
 ### [Sei](https://github.com/FunctionLab/sei-framework)
@@ -64,5 +64,30 @@ We recommend following the setup instructions and using the chromatin profile pr
 
 ## Task 2: Generate functionally informed PIPs (fiPIPs)
 
-We provide a command line tool for generating fiPIPs from quantitative scores. Please refer to task 1 for direction on how these can be obtained if necessary.  
+We provide a command-line tool for generating fiPIPs from quantitative scores. Please refer to task 1 for direction on how quantitative scores can be obtained if necessary.
+
+Please provide a file for testing and a file for training according to the following format.
+
+### Training file format
+Required columns (include column names, use following column names for first three columns):
+* variant — Variant ID
+* label — Binary 0/1 for negative/positive label respectively
+* chr — Variant's chromosome
+* Continous scores (any number of columns; column names can be whatever, please make sure they match the names in the testing file)
+
+### Testing file format
+Required columns (include column names, use following column names for first four columns):
+* variant — Variant ID
+* cs_id — Credible set ID
+* pip — Posterior inclusion probability (PIP) from statistical fine-mapping
+* Continous scores (Please make sure they match the columns in the training file)
+
+The following command will generate PIP-agnostic probability-scale predictions, fiPIPs, and JSON files for each XGBoost model for each chromosome to the output directory `outdir`:
+```bash
+python calculate_fipip \
+  --train-file tutorials/train_df.tsv \
+  --predict-file tutorials/test_df.tsv \
+  --outdir output \
+  --groups 1-5   # optional; 1-based indices; allows subset of continuous scores to be used
+```
 
