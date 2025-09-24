@@ -8,7 +8,7 @@ python -m pip install -U pip setuptools wheel
 pip install -e .
 ```
 
-## Task 1: Generate or access deep-leaning based sequence-to-omics scores
+## Task 1: Generate or access deep-learning based sequence-to-omics scores
 
 **Please refer to each method's individual installation instructions before use. To prevent conflicts across the different methods which have different requirements, we recommend making virtual or Conda environments for each method.**
 
