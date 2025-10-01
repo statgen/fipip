@@ -9,8 +9,7 @@ def main():
         if fname.endswith(".py") and fname != "__init__.py":
             module_list.append(os.path.splitext(fname)[0])  # e.g. "predict_from_json"
 
-    # map of command -> module (command names are module basenames)
-    module_map = {m: m for m in module_list}
+    module_map = {m: m for m in module_list}  # command -> module
 
     # usage & command parsing
     if len(sys.argv) < 2:
@@ -19,14 +18,13 @@ def main():
         return
 
     cmd_raw = sys.argv[1]
-    cmd = cmd_raw.replace("-", "_")  # support hyphens as aliases for underscores
+    cmd = cmd_raw.replace("-", "_")  # allow hyphens as aliases
 
     if cmd not in module_map:
         print(f"Unknown command: {cmd_raw}")
         print("Available commands:\n\t" + "\n\t".join(sorted(module_map.keys())))
         return
 
-    # import the module and resolve the callable
     module_name = "fipip.scripts." + module_map[cmd]
     module = importlib.import_module(module_name)
 

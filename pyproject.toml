@@ -14,14 +14,15 @@ dependencies = [
 fipip = "fipip.cli:main"
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.package-data]
 scripts = ["*.txt", "*.rst", "*.html"]
+tutorials = ["*.tsv", "*.txt"]
 
 [tool.setuptools.packages.find]
-include = ["fipip*"]
+include = ["fipip*", "tutorials*"]
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff", "mypy"]
