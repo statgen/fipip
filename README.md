@@ -27,7 +27,13 @@ The output file will have predictions for 667 RNA-seq tracks per variant. The "f
 
 ### [Borzoi](https://github.com/calico/borzoi)
 
-Please follow the installation instructions in the Borzoi repository to download the Borzoi models for use.
+#### [Pre-computed Borzoi scores](https://console.cloud.google.com/storage/browser/seqnn-share/sniff;tab=objects?prefix=&forceOnObjectsSortingFiltering=false)
+
+With the release of [Srivastava, D. et al. (2025)](https://www.biorxiv.org/content/10.1101/2025.07.09.663936v1.full-text), pre-computed Borzoi scores have been released for over 19 million common and low frequency varaints. While offering less flexibility than generating your own Borzoi scores, using these scores can be efficient and cost effective. Scores are available for both variant effect predictions (VEPs) and principal components (PCs) derived from VEPs. Please note that the currently pre-computed Borzoi scores are in hg19 format.
+
+#### Generating your own Borzoi scores
+
+In order to generate your own Borzoi scores, please follow the installation instructions in the Borzoi repository to download the Borzoi models for use.
 
 Two scripts in the tutorials folder can be used for generating Borzoi scores for the variants in your credible set. The first example script we provide predicts for all 89 RNA-seq tracks. This first script produces two [pickle](https://docs.python.org/3/library/pickle.html) objects per variant, one for each allele, corresponding to RNA-seq predictions at 32 base pair resolution for all 89 tissues across 4 folds.
 
@@ -42,10 +48,6 @@ The second script takes the output folder of pickle objects and converts each pi
 # Example
 fipip borzoi_2 --input borzoi_objects --output borzoi_scores.csv --tracks 1-89 --gtf-path /path/to/your/gtf.gtf --gene-map tutorials/example_data.tsv
 ```
-
-#### [Pre-computed Borzoi scores](https://console.cloud.google.com/storage/browser/seqnn-share/sniff;tab=objects?prefix=&forceOnObjectsSortingFiltering=false)
-
-With the release of [Srivastava, D. et al. (2025)](https://www.biorxiv.org/content/10.1101/2025.07.09.663936v1.full-text), pre-computed Borzoi scores have been released for over 19 million common and low frequency varaints. While offering less flexibility than generating your own Borzoi scores, using these scores can be efficient and cost effective. Scores are available for both variant effect predictions (VEPs) and principal components (PCs) derived from VEPs. Please note that the currently pre-computed Borzoi scores are in hg19 format.
 
 ### [Enformer](https://github.com/google-deepmind/deepmind-research/tree/master/enformer)
 
