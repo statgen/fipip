@@ -27,7 +27,7 @@ The output file will have predictions for 667 RNA-seq tracks per variant. The "f
 
 ### [Borzoi](https://github.com/calico/borzoi)
 
-#### [Pre-computed Borzoi scores](https://console.cloud.google.com/storage/browser/seqnn-share/sniff;tab=objects?prefix=&forceOnObjectsSortingFiltering=false)
+#### [Pre-computed Borzoi scores](https://console.cloud.google.com/storage/browser/seqnn-share/sniff;tab=objects?prefix=&forceOnObjectsSortingFiltering=false) (recommended)
 
 With the release of [Srivastava, D. et al. (2025)](https://www.biorxiv.org/content/10.1101/2025.07.09.663936v1.full-text), pre-computed Borzoi scores have been released for over 19 million common and low frequency varaints. While offering less flexibility than generating your own Borzoi scores, using these scores can be efficient and cost effective. Scores are available for both variant effect predictions (VEPs) and principal components (PCs) derived from VEPs. Please note that the currently pre-computed Borzoi scores are in hg19 format.
 
