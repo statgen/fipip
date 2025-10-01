@@ -12,12 +12,6 @@ dependencies = [
 
 [project.scripts]
 fipip = "fipip.cli:main"
-alphagenome = "tutorials.alphagenome_cli:main"
-borzoi_1 = "tutorials.borzoi_1:main"
-borzoi_2 = "tutorials.borzoi_2:main"
-enformer = "tutorials.enformer:main"
-calculate_fipip = "fipip.scripts.fipip:main"
-predict_from_json = "fipip.scripts.predict_from_json:main"
 
 [build-system]
 requires = ["setuptools", "wheel"]

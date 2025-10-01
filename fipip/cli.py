@@ -1,35 +1,43 @@
-import os, sys, logging, importlib
-import logging
-
-cmd_raw = sys.argv[1]
-cmd = cmd_raw.replace("-", "_")          # normalize hyphens -> underscores
-if cmd not in module_map:
-    print(f"Unknown command: {cmd_raw}")
-    ...
-function_name = cmd
-module_name = "fipip.scripts." + module_map[function_name]
+# fipip/cli.py
+import os, sys, importlib
 
 def main():
+    # discover available subcommand modules under fipip/scripts
+    scripts_dir = os.path.join(os.path.dirname(__file__), "scripts")
     module_list = []
-    scripts_dir = os.path.join(os.path.dirname(__file__), 'scripts')
-    for f in os.listdir(scripts_dir):
-        if f.endswith(".py") and f != "__init__.py":
-            module_list.append(os.path.splitext(f)[0])
+    for fname in os.listdir(scripts_dir):
+        if fname.endswith(".py") and fname != "__init__.py":
+            module_list.append(os.path.splitext(fname)[0])  # e.g. "predict_from_json"
 
-    module_map = {m:m for m in module_list}
+    # map of command -> module (command names are module basenames)
+    module_map = {m: m for m in module_list}
 
+    # usage & command parsing
     if len(sys.argv) < 2:
-        print("Usage: fipip <command> <args>, fipip <command> -h to see arguments for each command")
-        print("Available commands:\n\t"+"\n\t".join(sorted(list(module_map.keys()) )))
-        return
-    elif sys.argv[1] not in module_map:
-        print("Unknown command: "+sys.argv[1])
-        print("Available commands:\n\t"+"\n\t".join(sorted(list(module_map.keys()) )))
+        print("Usage: fipip <command> <args>   (use: fipip <command> -h for help)")
+        print("Available commands:\n\t" + "\n\t".join(sorted(module_map.keys())))
         return
 
-    function_name = sys.argv[1]
-    module_name = "fipip.scripts." + module_map[function_name]
+    cmd_raw = sys.argv[1]
+    cmd = cmd_raw.replace("-", "_")  # support hyphens as aliases for underscores
+
+    if cmd not in module_map:
+        print(f"Unknown command: {cmd_raw}")
+        print("Available commands:\n\t" + "\n\t".join(sorted(module_map.keys())))
+        return
+
+    # import the module and resolve the callable
+    module_name = "fipip.scripts." + module_map[cmd]
     module = importlib.import_module(module_name)
-    function = getattr(module, function_name)
 
-    function(sys.argv[2:])
+    # Prefer a function named after the command; fallback to main()
+    if hasattr(module, cmd):
+        func = getattr(module, cmd)
+    elif hasattr(module, "main"):
+        func = getattr(module, "main")
+    else:
+        print(f"The module '{module_name}' does not expose '{cmd}()' or main().")
+        return
+
+    # forward remaining argv to the subcommand
+    func(sys.argv[2:])
