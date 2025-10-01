@@ -270,3 +270,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def predict_from_json(argv=None):
+    return main()

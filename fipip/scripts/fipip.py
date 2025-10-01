@@ -395,3 +395,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def fipip(argv=None):
+    return main()
