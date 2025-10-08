@@ -86,7 +86,7 @@ Required columns (include column names, use following column names for first fou
 
 The following command will generate PIP-agnostic probability-scale predictions, fiPIPs, and JSON files after training a XGBoost model for each chromosome to the output directory set by `--outdir`:
 ```bash
-fipip fipip \
+fipip calculate_fipip \
   --train-file tutorials/train_df.tsv \
   --predict-file tutorials/test_df.tsv \
   --outdir output \
