@@ -396,5 +396,5 @@ def main():
 if __name__ == "__main__":
     main()
 
-def fipip(argv=None):
+def calculate_fipip(argv=None):
     return main()
