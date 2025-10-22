@@ -1,5 +1,5 @@
 # fiPIP (Functionally Informed PIPs)
-This repository aims to accomplish two tasks for users with statistical fine-mapping results: (1) provide a starting point for users seeking to generate or access deep-leaning based sequence-to-omics scores from AlphaGenome, Borzoi, Enformer and/or Sei, and (2) generate functionally-informed posterior inclusion probabilities (PIPs) from quantitative scores containing functional information. These two tasks can be completed independently of each other. Users can use any quantitative scores to generate fiPIPs using this code respository, including those from tools not mentioned in this code repository. In fact, as sequence-to-omics models update and new ones are released, we encourage users to do so. This repository may not be updated if updates are released for the aforementioned sequence-to-omics models or as new ones are released.
+This repository aims to accomplish two tasks for users with statistical fine-mapping results: **(1)** provide a starting point for users seeking to generate or access deep-leaning based sequence-to-omics scores from AlphaGenome, Borzoi, Enformer and/or Sei, and **(2)** generate functionally-informed posterior inclusion probabilities (PIPs) from quantitative scores containing functional information. These two tasks can be completed independently of each other. Users can use any quantitative scores to generate fiPIPs using this code respository, including those from tools not mentioned in this code repository. In fact, as sequence-to-omics models update and new ones are released, we encourage users to do so. This repository may not be updated if updates are released for the aforementioned sequence-to-omics models or as new ones are released.
 
 ## Installation
 
@@ -29,7 +29,9 @@ The output file will have predictions for 667 RNA-seq tracks per variant. The "f
 
 #### [Pre-computed Borzoi scores](https://console.cloud.google.com/storage/browser/seqnn-share/sniff;tab=objects?prefix=&forceOnObjectsSortingFiltering=false) (recommended)
 
-With the release of [Srivastava, D. et al. (2025)](https://www.biorxiv.org/content/10.1101/2025.07.09.663936v1.full-text), pre-computed Borzoi scores have been released for over 19 million common and low frequency varaints. While offering less flexibility than generating your own Borzoi scores, using these scores can be efficient and cost effective. Scores are available for both variant effect predictions (VEPs) and principal components (PCs) derived from VEPs. Please note that the currently pre-computed Borzoi scores are in hg19 format.
+**Please note that the pre-computed Borzoi scores are based on the hg19 genome build. If your variants are based on the hg38 genome build, please liftover first before continuing.**
+
+With the release of [Srivastava, D. et al. (2025)](https://www.biorxiv.org/content/10.1101/2025.07.09.663936v1.full-text), pre-computed Borzoi scores have been released for over 19 million common and low frequency varaints. While offering less flexibility than generating your own Borzoi scores, using these scores can be efficient and cost effective. Scores are available for both variant effect predictions (VEPs) and principal components (PCs) derived from VEPs.
 
 #### Generating your own Borzoi scores
 
@@ -51,7 +53,9 @@ fipip borzoi_2 --input borzoi_objects --output borzoi_scores.csv --tracks 1-89 -
 
 ### [Enformer](https://github.com/google-deepmind/deepmind-research/tree/master/enformer)
 
-Pre-computed Enformer scores are available [here](https://console.cloud.google.com/storage/browser/dm-enformer/variant-scores/1000-genomes/enformer). We provide a script for extracting Enformer scores from the h5 files as a script in the tutorials folder. Please note that currently pre-computed Enformer scores are in hg19 format, and you must lift your variants over to hg19 before using this script.
+**Please note that the pre-computed Enformer scores are based on the hg19 genome build. If your variants are based on the hg38 genome build, please liftover first before continuing.**
+
+Pre-computed Enformer scores are available [here](https://console.cloud.google.com/storage/browser/dm-enformer/variant-scores/1000-genomes/enformer). We provide a script for extracting Enformer scores from the h5 files as a script in the tutorials folder.
 
 We currently do not provide a script for generating your own Enformer scores; however, instructions for doing so and example Google Colab notebooks are available in the [Enformer github repository](https://github.com/google-deepmind/deepmind-research/tree/master/enformer).
 
