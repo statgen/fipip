@@ -35,9 +35,9 @@ With the release of [Srivastava, D. et al. (2025)](https://www.biorxiv.org/conte
 
 #### Generating your own Borzoi scores
 
-In order to generate your own Borzoi scores, please follow the installation instructions in the Borzoi repository to download the Borzoi models for use.
+In order to generate your own Borzoi scores, please follow the [installation instructions in the Borzoi repository](https://github.com/calico/borzoi?tab=readme-ov-file#installation) to download the Borzoi models for use.
 
-Two scripts in the tutorials folder can be used for generating Borzoi scores for the variants in your credible set. The first example script we provide predicts for all 89 RNA-seq tracks. This first script produces two [pickle](https://docs.python.org/3/library/pickle.html) objects per variant, one for each allele, corresponding to RNA-seq predictions at 32 base pair resolution for all 89 tissues across 4 folds.
+Two scripts in the tutorials folder can be used for generating Borzoi scores for the variants in your credible set. The first script we provide predicts for all 89 RNA-seq tracks. This first script produces two [pickle](https://docs.python.org/3/library/pickle.html) objects per variant, one for each allele, corresponding to RNA-seq predictions at 32 base pair resolution for all 89 tissues across 4 folds.
 
 ```bash
 # Example
