@@ -1,5 +1,9 @@
 # fiPIP (Functionally Informed PIPs)
-This repository aims to accomplish two tasks for users with statistical fine-mapping results: **(1)** provide a starting point for users seeking to generate or access deep-leaning based sequence-to-omics scores from AlphaGenome, Borzoi, Enformer and/or Sei, and **(2)** generate functionally-informed posterior inclusion probabilities (fiPIPs) from quantitative scores containing functional information. These two tasks can be completed independently of each other. Users can use *any* quantitative scores to generate fiPIPs using this code respository, including those from tools not mentioned in this code repository. In fact, as sequence-to-omics models update and new ones are released, we encourage users to do so. This repository may not be updated if updates are released for the aforementioned sequence-to-omics models or as new ones are released.
+This repository aims to accomplish two tasks for users with statistical fine-mapping results: **(1)** provide a starting point for users seeking to generate or access deep-leaning based sequence-to-omics (S2O) scores from AlphaGenome, Borzoi, Enformer and/or Sei, and **(2)** generate functionally-informed posterior inclusion probabilities (fiPIPs) from quantitative scores containing functional information.
+
+**(1)** and **(2)** can be completed independently of each other. Users can use *any* quantitative scores to generate fiPIPs using this code respository, including quantitative scores from tools not mentioned in this code repository or quantitative scores that are not from S2O models. In fact, as S2O AI models update and new ones are released, we encourage users to do so. This repository may not be updated if updates are released for the aforementioned S2O models or as new ones are released.
+
+Of the four S2O models listed in this repository, we recommend using AlphaGenome or Borzoi scores to generate fiPIPs.
 
 ## Installation
 
@@ -23,7 +27,7 @@ export ALPHAGENOME_API_KEY='YOUR_ALPHAGENOME_API_KEY'
 fipip alphagenome --input tutorials/example_data.tsv --output alphagenome_results.csv --sep "\t"
 ```
 
-The output file will have predictions for 667 RNA-seq tracks per variant. The "fallback" column is 1 for a variant if the variant's associated Ensembl ID was not present in the AlphaGenome output, and consequently a mean was taken over all other variants, and 0 otherwise.
+The output file will have predictions for 667 RNA-seq tracks per variant. The "fallback" column is 1 for a variant if the variant's associated Ensembl ID was not present in the AlphaGenome output, and consequently a mean was taken over all other genes, and 0 otherwise.
 
 ### [Borzoi](https://github.com/calico/borzoi)
 
@@ -31,7 +35,7 @@ The output file will have predictions for 667 RNA-seq tracks per variant. The "f
 
 **Please note that the pre-computed Borzoi scores are based on the hg19 genome build. If your variants are based on the hg38 genome build, please liftover first before continuing.**
 
-With the release of [Srivastava, D. et al. (2025)](https://www.biorxiv.org/content/10.1101/2025.07.09.663936v1.full-text), pre-computed Borzoi scores have been released for over 19 million common and low frequency varaints. While offering less flexibility than generating your own Borzoi scores, using these scores can be efficient and cost effective. Scores are available for both variant effect predictions (VEPs) and principal components (PCs) derived from VEPs.
+With the release of [Srivastava, D. et al. (2025)](https://www.biorxiv.org/content/10.1101/2025.07.09.663936v1.full-text), pre-computed Borzoi scores have been released for over 19 million common and low frequency varaints. While offering less flexibility than generating your own Borzoi scores, using these scores can be very efficient and cost effective. Scores are available for both variant effect predictions (VEPs) and principal components (PCs) derived from VEPs.
 
 #### Generating your own Borzoi scores
 
@@ -70,7 +74,7 @@ We recommend following the setup instructions and using the chromatin profile pr
 
 ## Task 2: Generate functionally informed PIPs (fiPIPs)
 
-We provide a command-line tool for generating fiPIPs from quantitative scores. Please refer to task 1 for direction on how quantitative scores can be obtained if necessary.
+We provide a command-line tool for generating fiPIPs from quantitative scores. Please refer to task 1 for direction on how quantitative scores can be obtained if necessary. The examples below mirror the example seen in Figure 3 of our preprint.
 
 Please provide a file for testing and a file for training according to the following format.
 
