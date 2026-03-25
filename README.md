@@ -24,7 +24,7 @@ Currently, an API has been released for AlphaGenome access. An API key is requir
 # Example
 pip install alphagenome
 export ALPHAGENOME_API_KEY='YOUR_ALPHAGENOME_API_KEY'
-fipip alphagenome --input tutorials/example_data.tsv --output alphagenome_results.csv --sep "\t"
+fipip alphagenome --input examples/example_data.tsv --output alphagenome_results.csv --sep "\t"
 ```
 
 The output file will have predictions for 667 RNA-seq tracks per variant. The "fallback" column is 1 for a variant if the variant's associated Ensembl ID was not present in the AlphaGenome output, and consequently a mean was taken over all other genes, and 0 otherwise.
@@ -52,7 +52,7 @@ The second script takes the output folder of pickle objects and converts each pi
 
 ```bash
 # Example
-fipip borzoi_2 --input borzoi_objects --output borzoi_scores.csv --tracks 1-89 --gtf-path /path/to/your/gtf.gtf --gene-map tutorials/example_data.tsv
+fipip borzoi_2 --input borzoi_objects --output borzoi_scores.csv --tracks 1-89 --gtf-path /path/to/your/gtf.gtf --gene-map examples/example_data.tsv
 ```
 
 ### [Enformer](https://github.com/google-deepmind/deepmind-research/tree/master/enformer)
@@ -65,7 +65,7 @@ We currently do not provide a script for generating your own Enformer scores; ho
 
 ```bash
 # Example
-fipip enformer --output enformer_master.csv --h5-dir /path/to/downloaded/h5/files --variants-file tutorials/example_variants.tsv --targets-file tutorials/enformer_targets.txt
+fipip enformer --output enformer_master.csv --h5-dir /path/to/downloaded/h5/files --variants-file examples/example_variants.tsv --targets-file examples/enformer_targets.txt
 ```
 
 ### [Sei](https://github.com/FunctionLab/sei-framework)
@@ -74,9 +74,9 @@ We recommend following the setup instructions and using the chromatin profile pr
 
 ## Task 2: Generate functionally informed PIPs (fiPIPs)
 
-We provide a command-line tool for generating fiPIPs from quantitative scores. Please refer to task 1 for direction on how quantitative scores can be obtained if necessary. The examples below mirror the example seen in Figure 3 of our preprint.
+We provide a command-line tool for generating fiPIPs from quantitative scores. Please refer to task 1 for direction on how quantitative scores can be obtained if necessary. The example below mirrors the example seen in Figure 3 of our preprint.
 
-Please provide a file for testing and a file for training according to the following format.
+Please provide a training file and a testing file according to the following format. Examples are provided in the repository.
 
 ### Training file format
 Required columns (include column names, use following column names for first three columns):
@@ -92,20 +92,19 @@ Required columns (include column names, use following column names for first fou
 * pip — Posterior inclusion probability (PIP) from statistical fine-mapping
 * Continous scores (Please make sure they match the columns in the training file)
 
-The following command will generate PIP-agnostic probability-scale predictions, fiPIPs, and JSON files after training a XGBoost model for each chromosome to the output directory set by `--outdir`:
+The following command will train an XGBoost model (JSON file format) for each chromosome and generate PIP-agnostic probability-scale predictions and fiPIPs for variants in the testing file, output to the directory set by `--outdir`:
 ```bash
 fipip calculate_fipip \
-  --train-file tutorials/train_df.tsv \
-  --predict-file tutorials/test_df.tsv \
-  --outdir output \
-  --groups 1-5   # optional parameter; 1-based indices; allows subset of continuous scores to be used
+  --train-file examples/train_df.tsv.gz \
+  --test-file examples/test_df_gtex.tsv \
+  --outdir output_gtex \
 ```
 
-The following command will generate PIP-agnostic probability-scale predictions and fiPIPs from previously generated XGBoost model (JSON files) to the output directory set by `--outdir`:
+The following command can generate PIP-agnostic probability-scale predictions and fiPIPs from XGBoost models (JSON files) previously generated with `calculate_fipip` to the output directory set by `--outdir`:
 ```bash
 fipip predict_from_json \
-  --predict-file tutorials/test_df2.tsv \
-  --models-dir output \
-  --outdir new_output \
+  --test-file examples/test_df.tsv \
+  --models-dir output_gtex/xgb_loco.models \
+  --outdir output_chr11 \
 ```
 
