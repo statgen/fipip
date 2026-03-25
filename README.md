@@ -123,4 +123,4 @@ fipip predict_from_json \
 ```
 
 The above command generates the following AlphaGenome fiPIPs as seen in our publication (Fig. 3):
-
+![alt text](https://github.com/statgen/fipip/blob/main/examples/alphagenome_fipip.png "AlphaGenome fiPIP vs. PIP result plot")
