@@ -1,7 +1,7 @@
 # fiPIP (Functionally Informed PIPs)
 This repository aims to accomplish two tasks for users with statistical fine-mapping results: **(1)** provide a starting point for users seeking to generate or access deep-leaning based sequence-to-omics (S2O) scores from AlphaGenome, Borzoi, Enformer and/or Sei, and **(2)** generate functionally-informed posterior inclusion probabilities (fiPIPs) from quantitative scores containing functional information.
 
-**(1)** and **(2)** can be completed independently of each other. Users can use *any* quantitative scores to generate fiPIPs using this code respository, including quantitative scores from tools not mentioned in this code repository or quantitative scores that are not from S2O models. In fact, as S2O AI models update and new ones are released, we encourage users to do so. This repository may not be updated if updates are released for the aforementioned S2O models or as new ones are released.
+**(1)** and **(2)** can be completed independently of each other. Users can use *any* quantitative scores to generate fiPIPs using this code respository, including quantitative scores from tools not mentioned in this code repository or quantitative scores that are not from S2O models. In fact, as S2O AI models update and new ones are released, we encourage users to do so. For best results, please check for updates and directions of the authors of the aforementioned S2O models or potentially new ones as they are released.
 
 Of the four S2O models listed in this repository, we recommend using AlphaGenome or Borzoi scores to generate fiPIPs.
 
