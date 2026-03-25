@@ -141,11 +141,11 @@ def main():
             "Apply saved per-chromosome XGBoost models to a prediction file and compute fiPIPs."
         )
     )
-    ap.add_argument("--predict-file", required=True, help="Prediction file with columns: variant, cs_id, pip, <chrom-col>, scores...")
+    ap.add_argument("--test-file", required=True, help="Prediction file with columns: variant, cs_id, pip, <chrom-col>, scores...")
     ap.add_argument("--models-dir", required=True, help="Directory containing .xgb.json models (and optional manifest.json).")
     ap.add_argument("--outdir", required=True, help="Output directory.")
     ap.add_argument("--model-name", default="xgb_apply", help="Base name for output file (no extension).")
-    ap.add_argument("--chrom-col", default="chrom", help="Column name for chromosome in prediction file (e.g., 'chr').")
+    ap.add_argument("--chrom-col", default="chr", help="Column name for chromosome in prediction file (e.g., 'chr').")
     ap.add_argument("--fallback-chrom", default=None,
                     help="If a chromosome has no matching model file, use this chromosome's model instead (e.g., 'chr1'). Default: error.")
     ap.add_argument("--no-abs", action="store_true",
@@ -155,7 +155,7 @@ def main():
     os.makedirs(args.outdir, exist_ok=True)
 
     # Load prediction table
-    df = read_table(args.predict_file)
+    df = read_table(args.test_file)
 
     # Basic checks
     for col in ["variant", "cs_id", "pip"]:
@@ -244,13 +244,13 @@ def main():
 
     # Output
     pred_out = os.path.join(args.outdir, f"{args.model_name}.predictions.tsv")
-    base_cols = [c for c in all_pred.columns if c not in ("prediction", "fiPIP")]
-    ordered = base_cols + ["prediction", "fiPIP"]
+    keep = ["variant", "cs_id", "pip", args.chrom_col, "prediction", "fiPIP"]
+    ordered = [c for c in keep if c in all_pred.columns]
     all_pred[ordered].to_csv(pred_out, sep="\t", index=False)
 
     # Write a small apply-manifest
     apply_manifest = {
-        "predict_file": os.path.abspath(args.predict_file),
+        "test_file": os.path.abspath(args.test_file),
         "models_dir": os.path.abspath(args.models_dir),
         "chrom_col": args.chrom_col,
         "score_columns_source": "manifest.used_score_columns" if (manifest and "used_score_columns" in manifest and manifest["used_score_columns"]) else "derived_from_prediction_file",

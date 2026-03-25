@@ -28,6 +28,7 @@ from typing import List, Tuple, Optional, Dict
 
 import numpy as np
 import pandas as pd
+import gzip
 
 try:
     import xgboost as xgb
@@ -41,8 +42,8 @@ except ImportError:
 # ---------------------------
 
 def infer_sep(path: str) -> str:
-    """Infer CSV/TSV delimiter using first non-empty line."""
-    with open(path, "r", encoding="utf-8") as f:
+    opener = gzip.open if path.endswith(".gz") else open
+    with opener(path, "rt", encoding="utf-8") as f:
         for line in f:
             s = line.strip()
             if not s:
@@ -51,51 +52,8 @@ def infer_sep(path: str) -> str:
                 return "\t"
             if "," in s:
                 return ","
-            # whitespace fallback
             return r"\s+"
     return ","
-
-
-def parse_groups(group_args: Optional[List[str]], n_scores: int) -> Optional[List[int]]:
-    """
-    Parse 1-based ranges like ["1-125", "200-260"] to 0-based indices (relative to first score column).
-    Accepts comma- and space-separated tokens, e.g. "--groups 1-10 20-30,42".
-    """
-    if not group_args:
-        return None
-    toks: List[str] = []
-    for t in group_args:
-        toks.extend([p for p in re.split(r"[,\s]+", t) if p])
-
-    out: List[int] = []
-    for tok in toks:
-        m = re.match(r"^(\d+)-(\d+)$", tok)
-        if m:
-            a, b = int(m.group(1)), int(m.group(2))
-            if a < 1 or b < 1 or a > b:
-                raise ValueError(f"--groups invalid range: {tok}")
-            for i1 in range(a, b + 1):
-                idx0 = i1 - 1
-                if idx0 < 0 or idx0 >= n_scores:
-                    raise ValueError(f"--groups index {i1} out of bounds (1..{n_scores})")
-                out.append(idx0)
-            continue
-        m = re.match(r"^(\d+)$", tok)
-        if m:
-            i1 = int(m.group(1))
-            if i1 < 1:
-                raise ValueError(f"--groups index must be >=1, got {i1}")
-            idx0 = i1 - 1
-            if idx0 >= n_scores:
-                raise ValueError(f"--groups index {i1} out of bounds (1..{n_scores})")
-            out.append(idx0)
-            continue
-        raise ValueError(f"--groups token not understood: '{tok}'")
-
-    # unique & sorted
-    uniq = sorted(dict.fromkeys(out))
-    return uniq
-
 
 def check_binary_series(s: pd.Series, name: str = "label") -> None:
     vals = s.dropna().unique()
@@ -140,18 +98,14 @@ def derive_score_columns(
 def select_features_matrix(
     df: pd.DataFrame,
     score_cols: List[str],
-    group_indices: Optional[List[int]],
 ) -> Tuple[np.ndarray, List[str]]:
     """
-    Build feature matrix from score columns with optional selection by 0-based indices.
+    Build feature matrix from score columns.
     Apply absolute value transform (to mirror R code behavior).
     """
-    use_cols = score_cols if group_indices is None else [score_cols[i] for i in group_indices]
-    # Ensure numeric; raise if any fail
-    numeric_df = df[use_cols].apply(pd.to_numeric, errors="raise")
-    X = numeric_df.values
-    X = np.abs(X)
-    return X, use_cols
+    numeric_df = df[score_cols].apply(pd.to_numeric, errors="raise")
+    X = np.abs(numeric_df.values)
+    return X, score_cols
 
 
 # ---------------------------
@@ -223,13 +177,10 @@ def main():
         )
     )
     ap.add_argument("--train-file", required=True, help="Training file (must include 'variant', 'label', and --chrom-col).")
-    ap.add_argument("--predict-file", required=True, help="Prediction file (must include 'variant', 'cs_id', 'pip', and --chrom-col).")
+    ap.add_argument("--test-file", required=True, help="Prediction file (must include 'variant', 'cs_id', 'pip', and --chrom-col).")
     ap.add_argument("--outdir", required=True, help="Output directory.")
     ap.add_argument("--model-name", default="xgb_loco", help="Base name for outputs (no extension).")
     ap.add_argument("--chrom-col", default="chr", help="Column name for chromosome in BOTH files (e.g., 'chr').")
-    ap.add_argument("--groups", nargs="*", default=None,
-                    help=("Optional 1-based index ranges selecting score columns (relative to the FIRST score column), "
-                          "e.g. '1-125' or '1-125,200-260'. If omitted, all score columns are used."))
     ap.add_argument("--max-depth", type=int, default=3)
     ap.add_argument("--eta", type=float, default=0.1)
     ap.add_argument("--nrounds", type=int, default=100)
@@ -243,7 +194,7 @@ def main():
 
     # Load data
     train_df = read_table(args.train_file)
-    pred_df = read_table(args.predict_file)
+    pred_df = read_table(args.test_file)
 
     # Required columns present?
     for col in ["variant", "label"]:
@@ -280,10 +231,6 @@ def main():
             "Fix names/order so they are identical."
         )
 
-    # Groups (1-based relative to score columns)
-    n_scores = len(train_scores)
-    group_idx = parse_groups(args.groups, n_scores)
-
     # Training rows with non-NA labels
     train_mask = train_df["label"].notna()
     if train_mask.sum() == 0:
@@ -300,11 +247,10 @@ def main():
     manifest: Dict[str, dict] = {
         "model_name": args.model_name,
         "train_file": os.path.abspath(args.train_file),
-        "predict_file": os.path.abspath(args.predict_file),
+        "test_file": os.path.abspath(args.test_file),
         "chrom_col": args.chrom_col,
         "used_score_columns": None,  # filled after first build
         "total_score_columns": train_scores,
-        "groups_arg": args.groups,
         "xgboost_params": {
             "max_depth": args.max_depth,
             "eta": args.eta,
@@ -332,7 +278,7 @@ def main():
             raise ValueError(f"Training set is empty for chrom={chrom} (mode={mode}).")
 
         y = train_loco["label"].to_numpy()
-        X_train, used_cols = select_features_matrix(train_loco, train_scores, group_idx)
+        X_train, used_cols = select_features_matrix(train_loco, train_scores)
         if manifest["used_score_columns"] is None:
             manifest["used_score_columns"] = used_cols
 
@@ -359,7 +305,7 @@ def main():
         pred_block = pred_df[pred_df[args.chrom_col] == chrom].copy()
         if pred_block.empty:
             continue
-        X_pred, _ = select_features_matrix(pred_block, pred_scores, group_idx)
+        X_pred, _ = select_features_matrix(pred_block, pred_scores)
         pred_block["prediction"] = predict_proba(booster, X_pred)
 
         preds_frames.append(pred_block)
