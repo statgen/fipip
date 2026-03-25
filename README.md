@@ -104,6 +104,8 @@ Required columns (include column names, use following column names for first fou
 * chr — Variant's chromosome
 * Continous scores (Please make sure they match the columns in the training file)
 
+The example provided here trains models like the whole blood experiment does in our preprint using AlphaGenome scores, and then generates AlphaGenome predictions and fiPIPs for all of the variants in the GTEx whole blood eQTLs we used in our analysis.
+
 The following command will train an XGBoost model (JSON file format) for each chromosome and generate PIP-agnostic probability-scale predictions and fiPIPs for variants in the testing file, output to the directory set by `--outdir`:
 ```bash
 fipip calculate_fipip \
@@ -119,4 +121,6 @@ fipip predict_from_json \
   --models-dir output_gtex/xgb_loco.models \
   --outdir output_chr11 \
 ```
+
+The above command generates the following AlphaGenome fiPIPs as seen in our publication (Fig. 3):
 
