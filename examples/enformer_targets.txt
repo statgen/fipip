@@ -1,3 +1,5 @@
-CHIP:H3K27me3:regulatory T cell originated from blood cell
-CHIP:H3K9me3:T-helper 17 cell originated from blood cell
+CAGE:Peripheral Blood Mononuclear Cells,
+CAGE:Whole blood (ribopure), , donation1
+CAGE:Whole blood (ribopure), , donation2
+CAGE:Whole blood (ribopure), , donation3
 CAGE:blood, adult, pool1
