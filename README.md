@@ -5,6 +5,8 @@ This repository aims to accomplish two tasks for users with statistical fine-map
 
 Of the four S2O models listed in this repository, we recommend using AlphaGenome or Borzoi scores to generate fiPIPs.
 
+![alt text](https://github.com/statgen/fipip/blob/main/fipip-framework.png "fiPIP framework diagram")
+
 ## Installation
 
 ```bash
