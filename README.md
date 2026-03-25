@@ -47,7 +47,7 @@ Two scripts in the tutorials folder can be used for generating Borzoi scores for
 # Example
 fipip borzoi_1 \
   --input tutorials/example_variants.tsv \
-  --outdir borzoi_objects
+  --outdir borzoi_objects \
 ```
 
 The second script takes the output folder of pickle objects and converts each pickle object to a singular Borzoi score for each variant for each track. If you would like to make predictions for only a subset of tracks, perhaps one(s) more relevant to the tissue of your eQTLs, the 89 columns of the pickle object correspond to the GTEx tissue replicates listed [here](https://github.com/calico/borzoi/blob/5c9358222b5026abb733ed5fb84f3f6c77239b37/examples/targets_gtex.txt). Please set the `--tracks` parameter to make predictions for only a subset of tissues. To make gene-contextual predictions for variants, please provide a GTF file and a file detailing the gene associated with each variant. Otherwise, gene-agnostic predictions will be made. This can be done by setting `--no-gtf`.
@@ -59,7 +59,7 @@ fipip borzoi_2 \
   --output borzoi_scores.csv \
   --tracks 1-89 \
   --gtf-path /path/to/your/gtf.gtf \
-  --gene-map examples/example_data.tsv
+  --gene-map examples/example_data.tsv \
 ```
 
 ### [Enformer](https://github.com/google-deepmind/deepmind-research/tree/master/enformer)
@@ -76,7 +76,7 @@ fipip enformer \
   --output enformer_master.csv \
   --h5-dir /path/to/downloaded/h5/files \
   --variants-file examples/example_variants.tsv \
-  --targets-file examples/enformer_targets.txt
+  --targets-file examples/enformer_targets.txt \
 ```
 
 ### [Sei](https://github.com/FunctionLab/sei-framework)
