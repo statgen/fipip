@@ -90,6 +90,7 @@ Required columns (include column names, use following column names for first fou
 * variant — Variant ID
 * cs_id — Credible set ID
 * pip — Posterior inclusion probability (PIP) from statistical fine-mapping
+* chr — Variant's chromosome
 * Continous scores (Please make sure they match the columns in the training file)
 
 The following command will train an XGBoost model (JSON file format) for each chromosome and generate PIP-agnostic probability-scale predictions and fiPIPs for variants in the testing file, output to the directory set by `--outdir`:
